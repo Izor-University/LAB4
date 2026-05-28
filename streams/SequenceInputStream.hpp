@@ -15,54 +15,41 @@ public:
     explicit SequenceInputStream(const Sequence<T>* seq)
         : sequence(seq), position(0), isOpen(false) {}
 
-    virtual void Open() override {
-        isOpen = true;
-        position = 0;
-    }
-
-    virtual void Close() override {
-        isOpen = false;
-    }
+    virtual void Open() override { isOpen = true; position = 0; }
+    virtual void Close() override { isOpen = false; }
 
     virtual bool IsEndOfStream() const override {
         if (!isOpen) return true;
         int len = sequence->GetLength();
-        if (len == -1) return false; // Бесконечная ленивая последовательность никогда не заканчивается!
+        if (len == -1) return false;
         return position >= len;
     }
 
-    virtual int GetPosition() const override {
-        return position;
-    }
+    // Возвращаем Ordinal!
+    virtual Ordinal GetPosition() const override { return Ordinal(0, position); }
+    virtual bool IsCanSeek() const override { return true; }
+    virtual bool IsCanGoBack() const override { return true; }
 
-    virtual bool IsCanSeek() const override {
-        return true; // В памяти мы всегда можем перемещаться
-    }
+    // Принимаем Ordinal!
+    virtual Ordinal Seek(const Ordinal& index) override {
+        if (!isOpen) throw Exception("Stream is closed");
+        int len = sequence->GetLength();
+        int reqIndex = index.GetOffset(); // Извлекаем int
 
-    virtual bool IsCanGoBack() const override {
-        return true;
+        if (reqIndex < 0) {
+            position = 0;
+        } else if (len != -1 && reqIndex > len) {
+            position = len;
+        } else {
+            position = reqIndex;
+        }
+        return Ordinal(0, position);
     }
 
     virtual T Input() override {
         if (!isOpen) throw Exception("Stream is closed");
         if (IsEndOfStream()) throw IndexOutOfRange("End of stream reached");
-
-        // Вызов Get() автоматически запустит вычисления в LazySequence, если нужно
         return sequence->Get(position++);
-    }
-
-    virtual int Seek(int index) override {
-        if (!isOpen) throw Exception("Stream is closed");
-
-        int len = sequence->GetLength();
-        if (index < 0) {
-            position = 0;
-        } else if (len != -1 && index > len) {
-            position = len;
-        } else {
-            position = index;
-        }
-        return position;
     }
 };
 

@@ -6,12 +6,12 @@
 template <class T>
 class FunctionGenerator : public IGenerator<T> {
 private:
-    T (*rule)(int); // Указатель на функцию генерации
+    T (*rule)(const Ordinal&); // Теперь принимает Ordinal
 
 public:
-    explicit FunctionGenerator(T (*ruleFunc)(int)) : rule(ruleFunc) {}
+    explicit FunctionGenerator(T (*ruleFunc)(const Ordinal&)) : rule(ruleFunc) {}
 
-    virtual T Generate(int index) const override {
+    virtual T Generate(const Ordinal& index) const override {
         return rule(index);
     }
 

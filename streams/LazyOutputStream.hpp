@@ -36,23 +36,20 @@ public:
     virtual Ordinal Output(const T& item) override {
         if (!isOpen) throw Exception("Stream is closed");
 
-        // Вызываем Append. В LazySequence метод Append возвращает указатель
-        // на НОВЫЙ объект LazySequence, оставляя старый неизменным.
         Sequence<T>* newSeqBase = sequence->Append(item);
-
-        // Безопасное приведение, так как мы точно знаем архитектуру ядра
         LazySequence<T>* newLazySeq = static_cast<LazySequence<T>*>(newSeqBase);
 
-        // Переключаем указатель потока на новую обертку
-        sequence = newLazySeq;
+        // ИСПРАВЛЕНИЕ: Защита от удаления себя (на будущее)
+        if (newLazySeq != sequence) {
+            delete sequence;
+        }
 
-        // Обновляем позицию (длина автоматически увеличилась, например, с w до w+1)
+        sequence = newLazySeq;
         position = sequence->GetOrdinalLength();
 
         return position;
     }
 
-    // Вспомогательный метод для получения итоговой последовательности
     LazySequence<T>* GetSequence() const {
         return sequence;
     }

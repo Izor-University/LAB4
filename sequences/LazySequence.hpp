@@ -6,7 +6,6 @@
 
 #include "../core/Sequence.hpp"
 #include "../core/MutableArraySequence.hpp"
-#include "../core/DynamicArray.hpp"
 #include "../core/Ordinal.hpp"
 #include "../generators/IGenerator.hpp"
 #include "../generators/Decorators.hpp"
@@ -14,7 +13,7 @@
 template <class T>
 class LazySequence : public Sequence<T> {
 protected:
-    mutable DynamicArray<MutableArraySequence<T>*>* caches;
+    mutable MutableArraySequence<MutableArraySequence<T>*>* caches;
     IGenerator<T>* generator;
     Ordinal virtualLength;
 
@@ -37,6 +36,9 @@ public:
     LazySequence(const LazySequence<T>& other);
     virtual ~LazySequence();
 
+    // ИСПРАВЛЕНИЕ ПРАВИЛА ТРЕХ
+    LazySequence<T>& operator=(const LazySequence<T>& other);
+
     virtual ISequenceBuilder<T>* CreateBuilder() const override;
     virtual Sequence<T>* CreateEmpty() const override;
     virtual Sequence<T>* Clone() const override;
@@ -45,6 +47,10 @@ public:
     virtual const T& Get(int index) const override;
     virtual int GetLength() const override;
     virtual const T& operator[](int index) const override;
+
+    // ИСПРАВЛЕНИЕ ДЛЯ БЕСКОНЕЧНОСТЕЙ
+    virtual const T& GetFirst() const override;
+    virtual const T& GetLast() const override;
 
     virtual const T& GetByOrdinal(const Ordinal& index) const;
     virtual Ordinal GetOrdinalLength() const;
@@ -58,6 +64,10 @@ public:
 
     virtual Sequence<T>* Concat(Sequence<T>* list) const override;
     virtual Sequence<T>* Slice(int index, int count, Sequence<T>* insertSeq = nullptr) override;
+
+    virtual Sequence<T>* Map(T (*mapper)(const T& element)) const override;
+    virtual Sequence<T>* Where(bool (*predicate)(const T& element)) const override;
+    virtual T Reduce(T (*reduce_func)(const T& accumulator, const T& current), const T& start_element) const override;
 };
 
 #include "LazySequence.tpp"

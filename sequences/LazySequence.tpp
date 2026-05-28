@@ -40,7 +40,7 @@ void LazySequence<T>::LazyEnumerator::Reset() {
 template <class T>
 LazySequence<T>::LazySequence(IGenerator<T>* gen, const Ordinal& length)
     : generator(gen), virtualLength(length) {
-    caches = new DynamicArray<MutableArraySequence<T>*>();
+    caches = new MutableArraySequence<MutableArraySequence<T>*>();
     caches->Append(new MutableArraySequence<T>());
 }
 
@@ -48,7 +48,7 @@ template <class T>
 LazySequence<T>::LazySequence(const LazySequence<T>& other)
     : virtualLength(other.virtualLength) {
     generator = other.generator->Clone();
-    caches = new DynamicArray<MutableArraySequence<T>*>();
+    caches = new MutableArraySequence<MutableArraySequence<T>*>();
     for (int i = 0; i < other.caches->GetLength(); ++i) {
         caches->Append(static_cast<MutableArraySequence<T>*>(other.caches->Get(i)->Clone()));
     }
@@ -61,6 +61,27 @@ LazySequence<T>::~LazySequence() {
     }
     delete caches;
     delete generator;
+}
+
+template <class T>
+LazySequence<T>& LazySequence<T>::operator=(const LazySequence<T>& other) {
+    if (this == &other) return *this;
+
+    for (int i = 0; i < caches->GetLength(); ++i) {
+        delete caches->Get(i);
+    }
+    delete caches;
+    delete generator;
+
+    virtualLength = other.virtualLength;
+    generator = other.generator->Clone();
+
+    caches = new MutableArraySequence<MutableArraySequence<T>*>();
+    for (int i = 0; i < other.caches->GetLength(); ++i) {
+        caches->Append(static_cast<MutableArraySequence<T>*>(other.caches->Get(i)->Clone()));
+    }
+
+    return *this;
 }
 
 // =========================================================
@@ -140,6 +161,19 @@ const T& LazySequence<T>::operator[](int index) const {
     return this->GetByOrdinal(Ordinal(0, index));
 }
 
+template <class T>
+const T& LazySequence<T>::GetFirst() const {
+    if (virtualLength == Ordinal(0, 0)) throw EmptyCollectionError();
+    return GetByOrdinal(Ordinal(0, 0));
+}
+
+template <class T>
+const T& LazySequence<T>::GetLast() const {
+    if (virtualLength == Ordinal(0, 0)) throw EmptyCollectionError();
+    if (virtualLength.IsInfinite()) throw Exception("Cannot get the last element of an infinite lazy sequence");
+    return GetByOrdinal(virtualLength - Ordinal(0, 1));
+}
+
 // =========================================================
 // АЛГЕБРА ЛЕНИВЫХ СПИСКОВ И ОРДИНАЛОВ
 // =========================================================
@@ -158,11 +192,6 @@ Sequence<T>* LazySequence<T>::Prepend(const T& item) {
 }
 
 template <class T>
-Sequence<T>* LazySequence<T>::InsertAt(const T& item, int index) {
-    throw Exception("InsertAt demands materialization or split-generators; unsupported in pure ordinal mode without adapter.");
-}
-
-template <class T>
 Sequence<T>* LazySequence<T>::GetSubsequence(const Ordinal& startIndex, const Ordinal& endIndex) const {
     if (endIndex < startIndex) throw IndexOutOfRange("Invalid Subsequence ordinal bounds");
     if (endIndex >= virtualLength) throw IndexOutOfRange("Out of bounds");
@@ -178,11 +207,72 @@ Sequence<T>* LazySequence<T>::GetSubsequence(int startIndex, int endIndex) const
 }
 
 template <class T>
-Sequence<T>* LazySequence<T>::Concat(Sequence<T>* list) const {
-    throw Exception("Concat requires external sequence adapter generator; materialize to fuse.");
+Sequence<T>* LazySequence<T>::InsertAt(const T& item, int index) {
+    Ordinal targetIndex(0, index);
+    if (targetIndex > this->virtualLength) throw IndexOutOfRange("InsertAt: Index out of bounds");
+
+    IGenerator<T>* dec = new InsertAtGenerator<T>(this->generator, item, targetIndex);
+    Ordinal newLen = this->virtualLength.IsInfinite() ? this->virtualLength : this->virtualLength + Ordinal(0, 1);
+
+    return new LazySequence<T>(dec, newLen);
 }
 
 template <class T>
+Sequence<T>* LazySequence<T>::Concat(Sequence<T>* list) const {
+    LazySequence<T>* lazyList = dynamic_cast<LazySequence<T>*>(list);
+
+    if (lazyList != nullptr) {
+        Ordinal newLen = this->GetOrdinalLength() + lazyList->GetOrdinalLength();
+        IGenerator<T>* dec = new ConcatGenerator<T>(this->generator, lazyList->generator, this->GetOrdinalLength());
+
+        return new LazySequence<T>(dec, newLen);
+    } else {
+        throw Exception("LazySequence Concat with non-lazy Sequence is not supported natively without adapter.");
+    }
+}
+
+// =========================================================
+// ФУНКЦИОНАЛЬНЫЕ МЕТОДЫ (ШАГ 3)
+// =========================================================
+
+template <class T>
+Sequence<T>* LazySequence<T>::Map(T (*mapper)(const T& element)) const {
+    IGenerator<T>* dec = new MapGenerator<T>(this->generator, mapper);
+    // При Map длина последовательности не меняется
+    return new LazySequence<T>(dec, this->virtualLength);
+}
+
+template <class T>
+Sequence<T>* LazySequence<T>::Where(bool (*predicate)(const T& element)) const {
+    IGenerator<T>* dec = new WhereGenerator<T>(this->generator, predicate, this->virtualLength);
+    // Длина результата Where неизвестна без полной материализации.
+    // Возвращаем исходную длину как максимально возможный "потолок" (Virtual Bound).
+    return new LazySequence<T>(dec, this->virtualLength);
+}
+
+template <class T>
+T LazySequence<T>::Reduce(T (*reduce_func)(const T& accumulator, const T& current), const T& start_element) const {
+    if (this->virtualLength.IsInfinite()) {
+        // Сворачивать бесконечность — значит запустить бесконечный цикл. Предотвращаем это.
+        throw Exception("Cannot Reduce an infinite lazy sequence. Infinite time required.");
+    }
+
+    T accumulator = start_element;
+    int len = this->virtualLength.GetOffset(); // Извлекаем конечное число элементов
+
+    // Ленивая выгрузка элементов (срабатывает кэширование)
+    for (int i = 0; i < len; ++i) {
+        accumulator = reduce_func(accumulator, this->Get(i));
+    }
+
+    return accumulator;
+}
+
+// =========================================================
+// ОСТАВШИЕСЯ ЗАГЛУШКИ
+// =========================================================
+
+template <class T>
 Sequence<T>* LazySequence<T>::Slice(int index, int count, Sequence<T>* insertSeq) {
-    throw Exception("Slice operations are fundamentally mutating; materialize to alter.");
+    throw Exception("Slice is inherently mutational and is not supported in pure LazySequence.");
 }

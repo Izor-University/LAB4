@@ -19,40 +19,31 @@ public:
         }
     }
 
-    virtual void Open() override {
-        isOpen = true;
-    }
+    virtual void Open() override { isOpen = true; }
+    virtual void Close() override { isOpen = false; }
 
-    virtual void Close() override {
-        isOpen = false;
-    }
+    virtual Ordinal GetPosition() const override { return Ordinal(0, position); }
 
-    virtual int Output(const T& item) override {
+    virtual Ordinal Output(const T& item) override {
         if (!isOpen) throw Exception("Stream is closed");
         if (sequence->GetLength() == -1) {
             throw Exception("Cannot output to an infinite sequence");
         }
 
-        // В core->Append может возвращаться как текущий объект (mutable), так и новый (immutable)
         Sequence<T>* newSeq = sequence->Append(item);
 
-        // Если вернулся новый объект, переключаем указатель
-        // (Очисткой памяти старого занимается внешний код или умная фабрика,
-        // чтобы не нарушить владение)
+        // ИСПРАВЛЕНИЕ: Удаляем старую версию только если Append вернул НОВЫЙ объект.
+        // (Для Immutable возвращается новый указатель, а для Mutable возвращается this)
+        if (newSeq != sequence) {
+            delete sequence;
+        }
+
         sequence = newSeq;
-
         position++;
-        return position;
+        return Ordinal(0, position);
     }
 
-    virtual int GetPosition() const override {
-        return position;
-    }
-
-    // Вспомогательный метод для получения итоговых данных
-    Sequence<T>* GetSequence() const {
-        return sequence;
-    }
+    Sequence<T>* GetSequence() const { return sequence; }
 };
 
 #endif // SEQUENCE_OUTPUT_STREAM_HPP
