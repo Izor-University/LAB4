@@ -55,12 +55,10 @@ void ConsoleUI::FreeAll() {
     }
 }
 
-// Заменяем глючный system("cls") на отступы для совместимости с CLion
 void ConsoleUI::ClearScreen() const {
     std::cout << "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n";
 }
 
-// Идеальная пауза: так как буфер уже чист, просто ждет одного нажатия Enter
 void ConsoleUI::WaitForKey() const {
     std::cout << "\nPress Enter to return to menu...";
     ConsumeLine();
@@ -73,8 +71,13 @@ void ConsoleUI::PrintDashboard() const {
     for (int i = 0; i < REG_COUNT; ++i) {
         if (int_regs[i]) {
             Ordinal len = int_regs[i]->GetOrdinalLength();
-            std::cout << " [Int " << i << "] (Len: "
-                      << (len.IsInfinite() ? "Omega + " : "") << len.GetOffset() << ") -> [ ";
+
+            // ИСПРАВЛЕНИЕ: Выводим множитель бесконечности (Omega * K)
+            std::cout << " [Int " << i << "] (Len: ";
+            if (len.IsInfinite()) {
+                std::cout << "Omega*" << len.GetOmegaCount() << " + ";
+            }
+            std::cout << len.GetOffset() << ") -> [ ";
 
             int previewCount = 7;
             if (len.IsFinite() && len.GetOffset() < 7) previewCount = len.GetOffset();
@@ -88,8 +91,13 @@ void ConsoleUI::PrintDashboard() const {
         }
         else if (double_regs[i]) {
             Ordinal len = double_regs[i]->GetOrdinalLength();
-            std::cout << " [Dbl " << i << "] (Len: "
-                      << (len.IsInfinite() ? "Omega + " : "") << len.GetOffset() << ") -> [ ";
+
+            // ИСПРАВЛЕНИЕ: Выводим множитель бесконечности (Omega * K)
+            std::cout << " [Dbl " << i << "] (Len: ";
+            if (len.IsInfinite()) {
+                std::cout << "Omega*" << len.GetOmegaCount() << " + ";
+            }
+            std::cout << len.GetOffset() << ") -> [ ";
 
             int previewCount = 5;
             if (len.IsFinite() && len.GetOffset() < 5) previewCount = len.GetOffset();
@@ -111,13 +119,16 @@ void ConsoleUI::PrintDashboard() const {
 void ConsoleUI::PrintMenu() const {
     std::cout << " 1. Create Linear Sequence (Int)\n"
               << " 2. Create Smart Sequence (Double / Var 14)\n"
-              << " 3. Print N Elements (Take)\n"
-              << " 4. Append Element\n"
-              << " 5. Concat Two Sequences\n"
-              << " 6. Map (Multiply by 10)\n"
-              << " 7. Where (Filter Even numbers)\n"
-              << " 8. Reduce (Sum of elements)\n"
-              << " 9. Free Register\n"
+              << " 3. Print N Elements from Ordinal (Take)\n"   // Обновлено
+              << " 4. Get Element by Ordinal\n"                 // Новое
+              << " 5. Append Element\n"
+              << " 6. Concat Two Sequences\n"
+              << " 7. Map (Multiply by 10)\n"
+              << " 8. Where (Filter Even numbers)\n"
+              << " 9. Reduce (Sum of elements)\n"
+              << "10. Stream Write (Append via Stream)\n"
+              << "11. Stream Read (Seek & Input)\n"
+              << "12. Free Register\n"
               << " 0. Exit\n"
               << "------------------------------------------------------------\n"
               << "Select action: ";
@@ -151,12 +162,15 @@ void ConsoleUI::Run() {
                 case 1: CreateLinearSequence(); break;
                 case 2: CreateSmartSequence(); break;
                 case 3: PrintElements(); break;
-                case 4: AppendElement(); break;
-                case 5: ConcatSequences(); break;
-                case 6: MapSequence(); break;
-                case 7: WhereSequence(); break;
-                case 8: ReduceSequence(); break;
-                case 9: FreeRegister(); break;
+                case 4: GetElement(); break;          // <--- Новое
+                case 5: AppendElement(); break;
+                case 6: ConcatSequences(); break;
+                case 7: MapSequence(); break;
+                case 8: WhereSequence(); break;
+                case 9: ReduceSequence(); break;
+                case 10: StreamWrite(); break;
+                case 11: StreamRead(); break;
+                case 12: FreeRegister(); break;
                 default: std::cout << "[ERROR] Unknown action.\n"; break;
             }
         }
@@ -206,28 +220,60 @@ void ConsoleUI::CreateSmartSequence() {
     std::cout << "[SUCCESS] Created Smart Data Sequence.\n";
 }
 
+// ОБНОВЛЕННАЯ: Умеет печатать элементы начиная из-за бесконечности
 void ConsoleUI::PrintElements() const {
     std::cout << "Enter register ID: ";
     int reg = ReadInt();
+    if (reg < 0 || reg >= REG_COUNT || (!int_regs[reg] && !double_regs[reg]))
+        throw Exception("Register is invalid or empty");
+
+    std::cout << "Start from Omega count? (0 for standard, 1 for Omega): ";
+    int omega = ReadInt();
+
+    std::cout << "Start from Offset? (0-based, e.g. 0 is the first element): ";
+    int offset = ReadInt();
+
     std::cout << "How many elements to print? ";
     int n = ReadInt();
 
-    if (reg >= 0 && reg < REG_COUNT && int_regs[reg]) {
+    if (int_regs[reg]) {
         std::cout << "Int Output: [ ";
         for (int i = 0; i < n; ++i) {
-            try { std::cout << int_regs[reg]->GetByOrdinal(Ordinal(0, i)) << " "; }
-            catch (...) { std::cout << "<END> "; break; }
-        }
-        std::cout << "]\n";
-    } else if (reg >= 0 && reg < REG_COUNT && double_regs[reg]) {
-        std::cout << "Double Output: [ ";
-        for (int i = 0; i < n; ++i) {
-            try { std::cout << double_regs[reg]->GetByOrdinal(Ordinal(0, i)) << " "; }
+            try { std::cout << int_regs[reg]->GetByOrdinal(Ordinal(omega, offset + i)) << " "; }
             catch (...) { std::cout << "<END> "; break; }
         }
         std::cout << "]\n";
     } else {
-        std::cout << "[ERROR] Register is invalid or empty.\n";
+        std::cout << "Double Output: [ ";
+        for (int i = 0; i < n; ++i) {
+            try { std::cout << double_regs[reg]->GetByOrdinal(Ordinal(omega, offset + i)) << " "; }
+            catch (...) { std::cout << "<END> "; break; }
+        }
+        std::cout << "]\n";
+    }
+}
+
+// НОВАЯ: Получить конкретный элемент по Ординалу
+void ConsoleUI::GetElement() const {
+    std::cout << "Enter register ID: ";
+    int reg = ReadInt();
+    if (reg < 0 || reg >= REG_COUNT || (!int_regs[reg] && !double_regs[reg]))
+        throw Exception("Register is invalid or empty");
+
+    std::cout << "Target Omega count (0 for finite, 1 for Omega): ";
+    int omega = ReadInt();
+
+    std::cout << "Target Offset (0-based, e.g. w+0 is the 1st element after Omega): ";
+    int offset = ReadInt();
+
+    Ordinal target(omega, offset);
+
+    if (int_regs[reg]) {
+        int val = int_regs[reg]->GetByOrdinal(target);
+        std::cout << "[SUCCESS] Element at Omega*" << omega << " + " << offset << " is: " << val << "\n";
+    } else {
+        double val = double_regs[reg]->GetByOrdinal(target);
+        std::cout << "[SUCCESS] Element at Omega*" << omega << " + " << offset << " is: " << val << "\n";
     }
 }
 
@@ -292,6 +338,43 @@ void ConsoleUI::ReduceSequence() const {
 
     int sum = int_regs[reg]->Reduce(Sum, 0);
     std::cout << "[SUCCESS] Reduce result (Sum) = " << sum << "\n";
+}
+
+void ConsoleUI::StreamWrite() {
+    std::cout << "Enter Int register ID: ";
+    int reg = ReadInt();
+    if (reg < 0 || reg >= REG_COUNT || !int_regs[reg]) throw Exception("Register is invalid or empty");
+
+    std::cout << "Enter value to write via Stream: ";
+    int val = ReadInt();
+
+    LazyOutputStream<int> stream(int_regs[reg]);
+    stream.Open();
+    Ordinal pos = stream.Output(val);
+    stream.Close();
+
+    int_regs[reg] = stream.GetSequence();
+    std::cout << "[SUCCESS] Value " << val << " written via Stream at position Omega*"
+              << pos.GetOmegaCount() << " + " << pos.GetOffset() << ".\n";
+}
+
+void ConsoleUI::StreamRead() const {
+    std::cout << "Enter Int register ID: ";
+    int reg = ReadInt();
+    if (reg < 0 || reg >= REG_COUNT || !int_regs[reg]) throw Exception("Register is invalid or empty");
+
+    std::cout << "Target Omega count for Stream Seek (0 for finite, 1 for Omega): ";
+    int omega = ReadInt();
+    std::cout << "Target Offset for Stream Seek: ";
+    int offset = ReadInt();
+
+    LazyInputStream<int> stream(int_regs[reg]);
+    stream.Open();
+    stream.Seek(Ordinal(omega, offset));
+    int val = stream.Input();
+    stream.Close();
+
+    std::cout << "[SUCCESS] Stream read value: " << val << " at Omega*" << omega << " + " << offset << ".\n";
 }
 
 void ConsoleUI::FreeRegister() {

@@ -20,11 +20,14 @@ private:
     void CreateLinearSequence();
     void CreateSmartSequence();
     void PrintElements() const;
+    void GetElement() const;
     void AppendElement();
     void ConcatSequences();
     void MapSequence();
     void WhereSequence();
     void ReduceSequence() const;
+    void StreamWrite();
+    void StreamRead() const;
     void FreeRegister();
 
 public:

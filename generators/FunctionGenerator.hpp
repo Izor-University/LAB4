@@ -6,7 +6,7 @@
 template <class T>
 class FunctionGenerator : public IGenerator<T> {
 private:
-    T (*rule)(const Ordinal&); // Теперь принимает Ordinal
+    T (*rule)(const Ordinal&);
 
 public:
     explicit FunctionGenerator(T (*ruleFunc)(const Ordinal&)) : rule(ruleFunc) {}
