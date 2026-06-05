@@ -25,12 +25,10 @@ public:
         return position >= len;
     }
 
-    // Возвращаем Ordinal!
     virtual Ordinal GetPosition() const override { return Ordinal(0, position); }
     virtual bool IsCanSeek() const override { return true; }
     virtual bool IsCanGoBack() const override { return true; }
 
-    // Принимаем Ordinal!
     virtual Ordinal Seek(const Ordinal& index) override {
         if (!isOpen) throw Exception("Stream is closed");
         int len = sequence->GetLength();

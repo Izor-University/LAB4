@@ -36,7 +36,6 @@ public:
     LazySequence(const LazySequence<T>& other);
     virtual ~LazySequence();
 
-    // ИСПРАВЛЕНИЕ ПРАВИЛА ТРЕХ
     LazySequence<T>& operator=(const LazySequence<T>& other);
 
     virtual ISequenceBuilder<T>* CreateBuilder() const override;

@@ -32,7 +32,6 @@ public:
 
         Sequence<T>* newSeq = sequence->Append(item);
 
-        // ИСПРАВЛЕНИЕ: Удаляем старую версию только если Append вернул НОВЫЙ объект.
         // (Для Immutable возвращается новый указатель, а для Mutable возвращается this)
         if (newSeq != sequence) {
             delete sequence;

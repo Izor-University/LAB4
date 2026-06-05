@@ -26,8 +26,6 @@ public:
 
     virtual bool IsEndOfStream() const override {
         if (!isOpen) return true;
-        // Благодаря перегруженным операторам сравнения в Ordinal,
-        // это корректно работает для любой длины (конечной, w, w+5 и т.д.)
         return position >= sequence->GetOrdinalLength();
     }
 

@@ -39,7 +39,6 @@ public:
         Sequence<T>* newSeqBase = sequence->Append(item);
         LazySequence<T>* newLazySeq = static_cast<LazySequence<T>*>(newSeqBase);
 
-        // ИСПРАВЛЕНИЕ: Защита от удаления себя (на будущее)
         if (newLazySeq != sequence) {
             delete sequence;
         }

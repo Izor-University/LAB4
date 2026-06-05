@@ -119,8 +119,8 @@ void ConsoleUI::PrintDashboard() const {
 void ConsoleUI::PrintMenu() const {
     std::cout << " 1. Create Linear Sequence (Int)\n"
               << " 2. Create Smart Sequence (Double / Var 14)\n"
-              << " 3. Print N Elements from Ordinal (Take)\n"   // Обновлено
-              << " 4. Get Element by Ordinal\n"                 // Новое
+              << " 3. Print N Elements from Ordinal (Take)\n"
+              << " 4. Get Element by Ordinal\n"
               << " 5. Append Element\n"
               << " 6. Concat Two Sequences\n"
               << " 7. Map (Multiply by 10)\n"
