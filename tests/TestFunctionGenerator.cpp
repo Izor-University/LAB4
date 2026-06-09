@@ -19,17 +19,17 @@ namespace {
 TEST(FunctionGeneratorTest, Generate_BasicRule) {
     FunctionGenerator<int> gen(DoubleRule);
 
-    EXPECT_EQ(gen.Generate(Ordinal(0, 0)), 0);
-    EXPECT_EQ(gen.Generate(Ordinal(0, 5)), 10);
-    EXPECT_EQ(gen.Generate(Ordinal(0, 42)), 84);
+    EXPECT_EQ(gen.Generate(Ordinal(0, 0)).GetValue(), 0);
+    EXPECT_EQ(gen.Generate(Ordinal(0, 5)).GetValue(), 10);
+    EXPECT_EQ(gen.Generate(Ordinal(0, 42)).GetValue(), 84);
 }
 
 TEST(FunctionGeneratorTest, Generate_TransfiniteIndex) {
     FunctionGenerator<int> gen(TransfiniteRule);
 
-    EXPECT_EQ(gen.Generate(Ordinal(0, 5)), 5);
-    EXPECT_EQ(gen.Generate(Ordinal::Omega()), 1000);
-    EXPECT_EQ(gen.Generate(Ordinal(2, 15)), 2015);
+    EXPECT_EQ(gen.Generate(Ordinal(0, 5)).GetValue(), 5);
+    EXPECT_EQ(gen.Generate(Ordinal::Omega()).GetValue(), 1000);
+    EXPECT_EQ(gen.Generate(Ordinal(2, 15)).GetValue(), 2015);
 }
 
 TEST(FunctionGeneratorTest, Clone_Independence) {
@@ -38,8 +38,8 @@ TEST(FunctionGeneratorTest, Clone_Independence) {
 
     delete originalGen;
 
-    EXPECT_EQ(clonedGen->Generate(Ordinal(0, 10)), 20);
-    EXPECT_EQ(clonedGen->Generate(Ordinal(0, 50)), 100);
+    EXPECT_EQ(clonedGen->Generate(Ordinal(0, 10)).GetValue(), 20);
+    EXPECT_EQ(clonedGen->Generate(Ordinal(0, 50)).GetValue(), 100);
 
     delete clonedGen;
 }

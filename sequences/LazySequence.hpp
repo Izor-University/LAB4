@@ -1,12 +1,10 @@
-// =========================================================
-// sequences/LazySequence.hpp
-// =========================================================
 #ifndef LAZY_SEQUENCE_HPP
 #define LAZY_SEQUENCE_HPP
 
 #include "../core/Sequence.hpp"
 #include "../core/MutableArraySequence.hpp"
 #include "../core/Ordinal.hpp"
+#include "../core/Option.hpp"
 #include "../generators/IGenerator.hpp"
 #include "../generators/Decorators.hpp"
 
@@ -47,12 +45,14 @@ public:
     virtual int GetLength() const override;
     virtual const T& operator[](int index) const override;
 
-    // ИСПРАВЛЕНИЕ ДЛЯ БЕСКОНЕЧНОСТЕЙ
     virtual const T& GetFirst() const override;
     virtual const T& GetLast() const override;
 
     virtual const T& GetByOrdinal(const Ordinal& index) const;
     virtual Ordinal GetOrdinalLength() const;
+
+    virtual Option<T> TryGet(int index) const override;
+    virtual Option<T> TryGetByOrdinal(const Ordinal& index) const;
 
     virtual Sequence<T>* Append(const T& item) override;
     virtual Sequence<T>* Prepend(const T& item) override;
@@ -62,6 +62,7 @@ public:
     virtual Sequence<T>* GetSubsequence(const Ordinal& startIndex, const Ordinal& endIndex) const;
 
     virtual Sequence<T>* Concat(Sequence<T>* list) const override;
+    virtual LazySequence<T>* InterleaveWith(Sequence<T>* seq2, Sequence<T>* seq3) const;
     virtual Sequence<T>* Slice(int index, int count, Sequence<T>* insertSeq = nullptr) override;
 
     virtual Sequence<T>* Map(T (*mapper)(const T& element)) const override;

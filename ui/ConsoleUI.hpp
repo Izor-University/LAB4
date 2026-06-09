@@ -23,6 +23,7 @@ private:
     void GetElement() const;
     void AppendElement();
     void ConcatSequences();
+    void InterleaveSequences();
     void MapSequence();
     void WhereSequence();
     void ReduceSequence() const;

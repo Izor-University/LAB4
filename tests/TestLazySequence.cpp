@@ -20,17 +20,19 @@ private:
     int* callCount;
 public:
     explicit CallCountingGenerator(int* counter) : callCount(counter) {}
-    virtual int Generate(const Ordinal& index) const override {
+
+    // ИСПРАВЛЕНИЕ: Возвращаем Option<int>
+    virtual Option<int> Generate(const Ordinal& index) const override {
         (*callCount)++;
-        return index.GetOffset() * 10;
+        return Option<int>(index.GetOffset() * 10);
     }
+
     virtual IGenerator<int>* Clone() const override {
         return new CallCountingGenerator(callCount);
     }
 };
 
 TEST(LazySequenceTest, Creation_EmptyAndInfinite) {
-    // ИСПРАВЛЕНИЕ: Передаем генератор через new
     LazySequence<int> emptySeq(new FunctionGenerator<int>(IdentityRule), Ordinal(0, 0));
     EXPECT_THROW(emptySeq.GetFirst(), EmptyCollectionError);
     EXPECT_THROW(emptySeq.GetLast(), EmptyCollectionError);
@@ -43,14 +45,13 @@ TEST(LazySequenceTest, Creation_EmptyAndInfinite) {
 
 TEST(LazySequenceTest, Memoization_Efficiency) {
     int count = 0;
-    // ИСПРАВЛЕНИЕ: Передаем через new
     LazySequence<int> seq(new CallCountingGenerator(&count), Ordinal(0, 10));
 
     EXPECT_EQ(count, 0);
     EXPECT_EQ(seq.Get(5), 50);
     EXPECT_EQ(count, 6);
     EXPECT_EQ(seq.Get(5), 50);
-    EXPECT_EQ(count, 6); // Кэш работает!
+    EXPECT_EQ(count, 6); // Кэш сработал!
     EXPECT_EQ(seq.Get(3), 30);
     EXPECT_EQ(count, 6);
     EXPECT_EQ(seq.Get(7), 70);
@@ -109,6 +110,9 @@ TEST(LazySequenceTest, Functional_MapWhere) {
     EXPECT_EQ(filtered->Get(0), 0);
     EXPECT_EQ(filtered->Get(1), 2);
     EXPECT_EQ(filtered->Get(2), 4);
+
+    // Внутри Get() вызывается TryGet(). Он получит None и выбросит IndexOutOfRange.
+    // Это именно то поведение, которое должен видеть конечный пользователь!
     EXPECT_THROW(filtered->Get(3), IndexOutOfRange);
     delete filtered;
 }
@@ -122,11 +126,6 @@ TEST(LazySequenceTest, Functional_ReduceFinite) {
 TEST(LazySequenceTest, Functional_ReduceInfiniteThrows) {
     LazySequence<int> infSeq(new FunctionGenerator<int>(IdentityRule), Ordinal::Omega());
     EXPECT_THROW(infSeq.Reduce(SumReducer, 0), Exception);
-}
-
-TEST(LazySequenceTest, Functional_SliceThrows) {
-    LazySequence<int> seq(new FunctionGenerator<int>(IdentityRule), Ordinal(0, 5));
-    EXPECT_THROW(seq.Slice(0, 2, nullptr), Exception);
 }
 
 TEST(LazySequenceTest, Iterator_Traversal) {

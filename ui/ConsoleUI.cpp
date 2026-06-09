@@ -123,12 +123,13 @@ void ConsoleUI::PrintMenu() const {
               << " 4. Get Element by Ordinal\n"
               << " 5. Append Element\n"
               << " 6. Concat Two Sequences\n"
-              << " 7. Map (Multiply by 10)\n"
-              << " 8. Where (Filter Even numbers)\n"
-              << " 9. Reduce (Sum of elements)\n"
-              << "10. Stream Write (Append via Stream)\n"
-              << "11. Stream Read (Seek & Input)\n"
-              << "12. Free Register\n"
+              << " 7. Interleave 3 Sequences (a0, b0, c0...)\n" // <--- НОВОЕ
+              << " 8. Map (Multiply by 10)\n"
+              << " 9. Where (Filter Even numbers)\n"
+              << "10. Reduce (Sum of elements)\n"
+              << "11. Stream Write (Append via Stream)\n"
+              << "12. Stream Read (Seek & Input)\n"
+              << "13. Free Register\n"
               << " 0. Exit\n"
               << "------------------------------------------------------------\n"
               << "Select action: ";
@@ -162,15 +163,16 @@ void ConsoleUI::Run() {
                 case 1: CreateLinearSequence(); break;
                 case 2: CreateSmartSequence(); break;
                 case 3: PrintElements(); break;
-                case 4: GetElement(); break;          // <--- Новое
+                case 4: GetElement(); break;
                 case 5: AppendElement(); break;
                 case 6: ConcatSequences(); break;
-                case 7: MapSequence(); break;
-                case 8: WhereSequence(); break;
-                case 9: ReduceSequence(); break;
-                case 10: StreamWrite(); break;
-                case 11: StreamRead(); break;
-                case 12: FreeRegister(); break;
+                case 7: InterleaveSequences(); break; // <--- НОВОЕ
+                case 8: MapSequence(); break;
+                case 9: WhereSequence(); break;
+                case 10: ReduceSequence(); break;
+                case 11: StreamWrite(); break;
+                case 12: StreamRead(); break;
+                case 13: FreeRegister(); break;
                 default: std::cout << "[ERROR] Unknown action.\n"; break;
             }
         }
@@ -307,6 +309,31 @@ void ConsoleUI::ConcatSequences() {
     if (int_regs[rout]) delete int_regs[rout];
     int_regs[rout] = static_cast<LazySequence<int>*>(newSeq);
     std::cout << "[SUCCESS] Sequences concatenated.\n";
+}
+
+void ConsoleUI::InterleaveSequences() {
+    std::cout << "Enter First Int register ID (A): ";
+    int r1 = ReadInt();
+    std::cout << "Enter Second Int register ID (B): ";
+    int r2 = ReadInt();
+    std::cout << "Enter Third Int register ID (C): ";
+    int r3 = ReadInt();
+    std::cout << "Enter Destination register ID: ";
+    int rout = ReadInt();
+
+    if (r1 < 0 || r2 < 0 || r3 < 0 || rout < 0 ||
+        r1 >= REG_COUNT || r2 >= REG_COUNT || r3 >= REG_COUNT || rout >= REG_COUNT)
+        throw Exception("Invalid register bounds");
+
+    if (!int_regs[r1] || !int_regs[r2] || !int_regs[r3])
+        throw Exception("One of source registers is empty");
+
+    LazySequence<int>* newSeq = int_regs[r1]->InterleaveWith(int_regs[r2], int_regs[r3]);
+
+    if (int_regs[rout]) delete int_regs[rout];
+    int_regs[rout] = newSeq; // static_cast не нужен, метод уже возвращает LazySequence
+
+    std::cout << "[SUCCESS] 3 Sequences interleaved successfully.\n";
 }
 
 void ConsoleUI::MapSequence() {

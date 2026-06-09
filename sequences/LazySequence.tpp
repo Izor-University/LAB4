@@ -108,7 +108,7 @@ IEnumerator<T>* LazySequence<T>::GetEnumerator() const {
 }
 
 // =========================================================
-// ДВУМЕРНАЯ МЕМОИЗАЦИЯ И ДЕКОМПОЗИЦИЯ
+// ДВУМЕРНАЯ МЕМОИЗАЦИЯ И ДЕКОМПОЗИЦИЯ С TRY-СЕМАНТИКОЙ
 // =========================================================
 template <class T>
 void LazySequence<T>::EnsureCacheLevel(int omegaCount) const {
@@ -118,9 +118,14 @@ void LazySequence<T>::EnsureCacheLevel(int omegaCount) const {
 }
 
 template <class T>
-const T& LazySequence<T>::GetByOrdinal(const Ordinal& index) const {
+Option<T> LazySequence<T>::TryGet(int index) const {
+    return TryGetByOrdinal(Ordinal(0, index));
+}
+
+template <class T>
+Option<T> LazySequence<T>::TryGetByOrdinal(const Ordinal& index) const {
     if (index >= virtualLength) {
-        throw IndexOutOfRange("LazySequence: Ordinal index out of bounds");
+        return Option<T>(); // None
     }
 
     int k = index.GetOmegaCount();
@@ -131,11 +136,28 @@ const T& LazySequence<T>::GetByOrdinal(const Ordinal& index) const {
 
     while (currentCache->GetLength() <= n) {
         Ordinal target(k, currentCache->GetLength());
-        T computedItem = generator->Generate(target);
-        currentCache->Append(computedItem);
+        Option<T> optItem = generator->Generate(target);
+
+        if (optItem.IsNone()) {
+            const_cast<LazySequence<T>*>(this)->virtualLength = target;
+            return Option<T>();
+        }
+
+        currentCache->Append(optItem.GetValue());
     }
 
-    return currentCache->Get(n);
+    return Option<T>(currentCache->Get(n));
+}
+
+template <class T>
+const T& LazySequence<T>::GetByOrdinal(const Ordinal& index) const {
+    Option<T> opt = TryGetByOrdinal(index);
+    if (opt.IsNone()) {
+        throw IndexOutOfRange("LazySequence: Element not found (Stream ended or index out of bounds)");
+    }
+    int k = index.GetOmegaCount();
+    int n = index.GetOffset();
+    return caches->Get(k)->Get(n);
 }
 
 template <class T>
@@ -228,6 +250,21 @@ Sequence<T>* LazySequence<T>::Concat(Sequence<T>* list) const {
         return new LazySequence<T>(dec, newLen);
     } else {
         throw Exception("LazySequence Concat with non-lazy Sequence is not supported natively without adapter.");
+    }
+}
+
+template <class T>
+LazySequence<T>* LazySequence<T>::InterleaveWith(Sequence<T>* seq2, Sequence<T>* seq3) const {
+    LazySequence<T>* lazy2 = dynamic_cast<LazySequence<T>*>(seq2);
+    LazySequence<T>* lazy3 = dynamic_cast<LazySequence<T>*>(seq3);
+
+    if (lazy2 != nullptr && lazy3 != nullptr) {
+        // Оборачиваем 3 генератора в наш новый декоратор
+        IGenerator<T>* dec = new InterleaveThreeGenerator<T>(this->generator, lazy2->generator, lazy3->generator);
+
+        return new LazySequence<T>(dec, Ordinal::Omega());
+    } else {
+        throw Exception("Interleave is only supported for 3 LazySequences natively.");
     }
 }
 

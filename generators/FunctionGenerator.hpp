@@ -11,8 +11,8 @@ private:
 public:
     explicit FunctionGenerator(T (*ruleFunc)(const Ordinal&)) : rule(ruleFunc) {}
 
-    virtual T Generate(const Ordinal& index) const override {
-        return rule(index);
+    virtual Option<T> Generate(const Ordinal& index) const override {
+        return Option<T>(rule(index));
     }
 
     virtual IGenerator<T>* Clone() const override {
