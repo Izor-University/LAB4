@@ -41,7 +41,6 @@ TEST(LazyStreamsTest, InputStream_InfinityJump) {
 }
 
 TEST(LazyStreamsTest, OutputStream_InfinityAppend) {
-    // ИСПРАВЛЕНИЕ: передаем new FunctionGenerator
     LazySequence<int>* seq = new LazySequence<int>(new FunctionGenerator<int>(IdentityRule), Ordinal::Omega());
 
     LazyOutputStream<int> stream(seq);
