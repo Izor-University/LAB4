@@ -259,7 +259,6 @@ LazySequence<T>* LazySequence<T>::InterleaveWith(Sequence<T>* seq2, Sequence<T>*
     LazySequence<T>* lazy3 = dynamic_cast<LazySequence<T>*>(seq3);
 
     if (lazy2 != nullptr && lazy3 != nullptr) {
-        // Оборачиваем 3 генератора в наш новый декоратор
         IGenerator<T>* dec = new InterleaveThreeGenerator<T>(this->generator, lazy2->generator, lazy3->generator);
 
         return new LazySequence<T>(dec, Ordinal::Omega());

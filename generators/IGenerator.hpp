@@ -9,7 +9,6 @@ class IGenerator {
 public:
     virtual ~IGenerator() {}
 
-    // Теперь возвращает Option<T>! Если элементов больше нет - вернет Option::None()
     virtual Option<T> Generate(const Ordinal& index) const = 0;
 
     virtual IGenerator<T>* Clone() const = 0;

@@ -21,7 +21,6 @@ private:
 public:
     explicit CallCountingGenerator(int* counter) : callCount(counter) {}
 
-    // ИСПРАВЛЕНИЕ: Возвращаем Option<int>
     virtual Option<int> Generate(const Ordinal& index) const override {
         (*callCount)++;
         return Option<int>(index.GetOffset() * 10);

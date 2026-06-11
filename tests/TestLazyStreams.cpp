@@ -17,13 +17,11 @@ namespace {
 }
 
 TEST(LazyStreamsTest, InputStream_InfinityJump) {
-    // ИСПРАВЛЕНИЕ: передаем new FunctionGenerator
     LazySequence<int>* infSeq = new LazySequence<int>(new FunctionGenerator<int>(IdentityRule), Ordinal::Omega());
 
     Sequence<int>* transfiniteSeqBase = infSeq->Append(999);
     LazySequence<int>* transfiniteSeq = static_cast<LazySequence<int>*>(transfiniteSeqBase);
 
-    // Удаляем матрешку, деструктор теперь сделает безопасный delete для генератора в куче
     delete infSeq;
 
     LazyInputStream<int> stream(transfiniteSeq);
@@ -69,7 +67,6 @@ TEST(LazyStreamsTest, OutputStream_InfinityAppend) {
 }
 
 TEST(LazyStreamsTest, Streams_ClosedSafety) {
-    // ИСПРАВЛЕНИЕ: передаем new FunctionGenerator
     LazySequence<int>* seq = new LazySequence<int>(new FunctionGenerator<int>(IdentityRule), Ordinal(0, 5));
 
     LazyOutputStream<int> outStream(seq);

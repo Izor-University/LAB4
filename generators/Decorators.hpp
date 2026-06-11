@@ -139,7 +139,7 @@ public:
     virtual IGenerator<T>* Clone() const override { return new WhereGenerator<T>(baseGen, predicate, sourceLength); }
 };
 
-// --- Декоратор Сцепления (Чередования) трех последовательностей ---
+
 template <class T>
 class InterleaveThreeGenerator : public IGenerator<T> {
 private:
@@ -161,13 +161,11 @@ public:
     }
 
     virtual Option<T> Generate(const Ordinal& index) const override {
-        // Мы чередуем только конечное смещение (offset).
-        // Это позволяет чередовать элементы даже за пределами первой бесконечности!
         int k = index.GetOmegaCount();
         int n = index.GetOffset();
 
         int source = n % 3;             // 0 -> A, 1 -> B, 2 -> C
-        int realIndex = n / 3;          // Индекс внутри выбранной последовательности
+        int realIndex = n / 3;
 
         Ordinal targetOrdinal(k, realIndex);
 

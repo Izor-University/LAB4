@@ -82,3 +82,28 @@ TEST(DecoratorsTest, Where_FilteringAndBounds) {
     // Запрашиваем 3-й подходящий (его нет). Должен вернуть None
     EXPECT_TRUE(whereGen.Generate(Ordinal(0, 3)).IsNone());
 }
+
+TEST(DecoratorsTest, ComplexChain_AppendPrependConcat) {
+    FunctionGenerator<int> baseGen(IdentityRule);
+
+    Ordinal baseLen(0, 3);
+
+    AppendGenerator<int> appGen(&baseGen, 999, baseLen);
+
+    PrependGenerator<int> prepGen(&appGen, 777);
+    Ordinal prepLen(0, 5);
+
+    ConcatGenerator<int> concatGen(&prepGen, &baseGen, prepLen);
+
+    EXPECT_EQ(concatGen.Generate(Ordinal(0, 0)).GetValue(), 777);
+
+    EXPECT_EQ(concatGen.Generate(Ordinal(0, 1)).GetValue(), 0);
+
+    EXPECT_EQ(concatGen.Generate(Ordinal(0, 3)).GetValue(), 2);
+
+    EXPECT_EQ(concatGen.Generate(Ordinal(0, 4)).GetValue(), 999);
+
+    EXPECT_EQ(concatGen.Generate(Ordinal(0, 5)).GetValue(), 0);
+
+    EXPECT_EQ(concatGen.Generate(Ordinal(0, 6)).GetValue(), 1);
+}

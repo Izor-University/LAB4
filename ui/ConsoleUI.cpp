@@ -30,7 +30,7 @@ namespace {
             ConsumeLine();
             throw Exception("Invalid input format. Expected a number!");
         }
-        ConsumeLine(); // Съедаем '\n' и любой мусор после числа
+        ConsumeLine();
         return val;
     }
 }
@@ -72,7 +72,6 @@ void ConsoleUI::PrintDashboard() const {
         if (int_regs[i]) {
             Ordinal len = int_regs[i]->GetOrdinalLength();
 
-            // ИСПРАВЛЕНИЕ: Выводим множитель бесконечности (Omega * K)
             std::cout << " [Int " << i << "] (Len: ";
             if (len.IsInfinite()) {
                 std::cout << "Omega*" << len.GetOmegaCount() << " + ";
@@ -92,7 +91,6 @@ void ConsoleUI::PrintDashboard() const {
         else if (double_regs[i]) {
             Ordinal len = double_regs[i]->GetOrdinalLength();
 
-            // ИСПРАВЛЕНИЕ: Выводим множитель бесконечности (Omega * K)
             std::cout << " [Dbl " << i << "] (Len: ";
             if (len.IsInfinite()) {
                 std::cout << "Omega*" << len.GetOmegaCount() << " + ";
@@ -222,7 +220,6 @@ void ConsoleUI::CreateSmartSequence() {
     std::cout << "[SUCCESS] Created Smart Data Sequence.\n";
 }
 
-// ОБНОВЛЕННАЯ: Умеет печатать элементы начиная из-за бесконечности
 void ConsoleUI::PrintElements() const {
     std::cout << "Enter register ID: ";
     int reg = ReadInt();
